@@ -1,0 +1,36 @@
+# ==============================================================================
+# KServe InferenceService - XGBoost Iris Classifier (MODEL #2)
+# ==============================================================================
+# What:  Deploys a pre-trained XGBoost Iris model via KServe
+# Why:   Second model! Shows KServe handles MULTIPLE frameworks easily.
+#        Same Iris dataset, different algorithm (XGBoost vs SKLearn).
+#
+# Input:  [sepal_length, sepal_width, petal_length, petal_width]
+# Output: 0 = Setosa, 1 = Versicolor, 2 = Virginica
+#
+# Key insight:
+#   Notice the YAML is almost identical to sklearn — just change modelFormat!
+#   KServe abstracts away the serving framework differences.
+# ==============================================================================
+
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "xgboost-iris"
+  namespace: "kserve-demo"
+  annotations:
+    sidecar.istio.io/inject: "true"
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: xgboost              # ← only this changed (sklearn → xgboost)
+      storageUri: "gs://kfserving-examples/models/xgboost/iris"
+      
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"

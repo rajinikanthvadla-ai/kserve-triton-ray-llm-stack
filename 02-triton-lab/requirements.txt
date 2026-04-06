@@ -1,0 +1,18 @@
+# ==============================================================================
+# Python dependencies for Lab 2: Triton Model Preparation
+# ==============================================================================
+# These are needed LOCALLY on your laptop to:
+#   1. Convert models to ONNX format (Triton's preferred format)
+#   2. Test sentiment model (tokenization happens locally)
+# ==============================================================================
+
+transformers>=4.40.0       # HuggingFace models + tokenizers
+torch>=2.2.0               # PyTorch (needed for model export)
+onnx>=1.15.0               # ONNX model format
+onnxruntime>=1.17.0        # ONNX Runtime (local testing)
+scikit-learn>=1.4.0        # sklearn (for Iris model)
+numpy>=1.26.0              # Array operations
+requests>=2.31.0           # HTTP client (for testing)
+skl2onnx>=1.16.0           # sklearn → ONNX converter
+boto3>=1.34.0              # AWS S3 SDK
+onnxscript>=0.1.0          # Required by torch.onnx.export

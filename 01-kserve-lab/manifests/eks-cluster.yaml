@@ -1,0 +1,42 @@
+# ==============================================================================
+# EKS Cluster Configuration
+# ==============================================================================
+# What:  Creates a minimal EKS cluster with 2 CPU nodes
+# Why:   We need a Kubernetes cluster to run KServe
+# Cost:  ~$0.20/hr (2x t3.medium = $0.0832/hr each + EKS control plane $0.10/hr)
+# ==============================================================================
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: kserve-lab
+  region: ap-south-1
+  version: "1.32"
+
+# We only need ONE node group - keep it simple and cheap
+managedNodeGroups:
+  - name: cpu-workers
+    instanceType: t3.medium        # 2 vCPU, 4 GB RAM - enough for our demo
+    desiredCapacity: 2             # exactly 2 nodes as requested
+    minSize: 2                     # minimum 2 (no scaling down to 0)
+    maxSize: 2                     # maximum 2 (no scaling up - save cost!)
+    volumeSize: 30                 # 30 GB disk per node
+    volumeType: gp3                # gp3 is cheaper than gp2
+    ssh:
+      allow: false                 # no SSH needed for a lab demo
+
+    # Labels help us identify these nodes
+    labels:
+      role: kserve-worker
+      environment: lab
+
+    # Tags for cost tracking
+    tags:
+      Project: kserve-lab
+      Environment: lab
+      ManagedBy: eksctl
+
+# Use CloudFormation for IAM (simpler)
+iam:
+  withOIDC: true                   # needed for service accounts (IRSA)

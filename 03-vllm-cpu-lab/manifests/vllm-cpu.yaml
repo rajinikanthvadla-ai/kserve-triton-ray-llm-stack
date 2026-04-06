@@ -1,0 +1,110 @@
+# Minimal vLLM CPU serving on EKS (OpenAI-compatible HTTP API).
+# Image: https://hub.docker.com/r/vllm/vllm-openai-cpu/tags
+# CPU install notes: https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
+#
+# Default model: HuggingFaceTB/SmolLM2-135M-Instruct (~135M params, public).
+# It includes a real tokenizer chat_template, so /v1/chat/completions works with
+# Transformers v4.44+ (OPT/causal-only models often do not — avoid them for chat demos).
+# No Hugging Face token required. For gated/private models, see README.
+# For ARM/Graviton nodes, change the image to: vllm/vllm-openai-cpu:latest-arm64
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-opt125m-cpu
+  namespace: vllm-cpu-lab
+  labels:
+    app: vllm-opt125m-cpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-opt125m-cpu
+  template:
+    metadata:
+      labels:
+        app: vllm-opt125m-cpu
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai-cpu:latest-x86_64
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+          args:
+            - "--model"
+            - "HuggingFaceTB/SmolLM2-135M-Instruct"
+            - "--dtype"
+            - "float32"
+            - "--max-model-len"
+            - "1024"
+            - "--max-num-seqs"
+            - "4"
+            - "--port"
+            - "8000"
+          env:
+            - name: HF_HOME
+              value: /root/.cache/huggingface
+            - name: VLLM_CPU_KVCACHE_SPACE
+              value: "1"
+            - name: VLLM_CPU_OMP_THREADS_BIND
+              value: "auto"
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "3800Mi"
+          securityContext:
+            capabilities:
+              add:
+                - SYS_NICE
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 80
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 900
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: hf-cache
+          emptyDir:
+            sizeLimit: 8Gi
+      securityContext:
+        seccompProfile:
+          type: Unconfined
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-opt125m
+  namespace: vllm-cpu-lab
+spec:
+  type: ClusterIP
+  selector:
+    app: vllm-opt125m-cpu
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http

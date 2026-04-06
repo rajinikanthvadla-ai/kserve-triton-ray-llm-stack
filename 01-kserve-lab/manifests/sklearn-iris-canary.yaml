@@ -1,0 +1,44 @@
+# ==============================================================================
+# KServe Canary Deployment - Traffic Splitting Demo
+# ==============================================================================
+# What:  Splits traffic between TWO versions of the sklearn model
+# Why:   This is how you do A/B testing or gradual rollouts in production!
+#
+# Traffic split:
+#   80% → default predictor  (v1 model - sklearn 1.0)
+#   20% → canary predictor   (v2 model - sklearn 1.0 with different version)
+#
+# In real life, you'd use this to:
+#   - Test a new model version on 20% of traffic
+#   - Monitor if the new version performs better
+#   - Gradually shift traffic: 80/20 → 50/50 → 0/100
+#
+# Key insight:
+#   KServe + Istio handle the traffic splitting automatically.
+#   You don't need to write ANY load balancing code!
+# ==============================================================================
+
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "sklearn-iris-canary"
+  namespace: "kserve-demo"
+  annotations:
+    sidecar.istio.io/inject: "true"
+spec:
+  # ───────────────────────────────────
+  # DEFAULT predictor (gets 80% traffic)
+  # ───────────────────────────────────
+  predictor:
+    canaryTrafficPercent: 20        # ← 20% goes to canary, 80% stays here
+    model:
+      modelFormat:
+        name: sklearn
+      storageUri: "gs://kfserving-examples/models/sklearn/1.0/model"
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"

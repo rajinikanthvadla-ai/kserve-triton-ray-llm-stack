@@ -1,0 +1,38 @@
+# ==============================================================================
+# KServe InferenceService - SKLearn Iris Classifier
+# ==============================================================================
+# What:  Deploys a pre-trained Iris classification model via KServe
+# Why:   This is the simplest possible ML model serving example
+# Model: Scikit-learn model hosted on KServe's public GCS bucket
+#
+# The Iris dataset has 4 features:
+#   - sepal length, sepal width, petal length, petal width
+# The model predicts one of 3 classes:
+#   - 0 = Setosa, 1 = Versicolor, 2 = Virginica
+# ==============================================================================
+
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "sklearn-iris"
+  namespace: "kserve-demo"
+  annotations:
+    # Keep resources minimal for our lab
+    sidecar.istio.io/inject: "true"
+spec:
+  predictor:
+    # Use the built-in SKLearn serving runtime
+    model:
+      modelFormat:
+        name: sklearn
+      # Pre-trained model from KServe's public storage
+      storageUri: "gs://kfserving-examples/models/sklearn/1.0/model"
+      
+      # Keep resources LOW for our 2-node cluster
+      resources:
+        requests:
+          cpu: "100m"              # 0.1 CPU cores
+          memory: "256Mi"          # 256 MB RAM
+        limits:
+          cpu: "500m"              # max 0.5 CPU cores
+          memory: "512Mi"          # max 512 MB RAM

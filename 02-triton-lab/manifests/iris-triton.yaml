@@ -1,0 +1,20 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: iris-triton
+  namespace: triton-demo
+spec:
+  predictor:
+    serviceAccountName: triton-sa
+    model:
+      modelFormat:
+        name: onnx
+      runtime: kserve-tritonserver
+      storageUri: "s3://kserve-triton-lab-559352513391/triton-repo/iris"
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "512Mi"
+        limits:
+          cpu: "1"
+          memory: "1Gi"
